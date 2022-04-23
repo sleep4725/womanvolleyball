@@ -1,0 +1,22 @@
+<!DOCTYPE>
+<html>
+    <head>
+        <title>-선수 정보-</title>
+        <style>
+            table, th, td {
+                border: 1px solid black;
+                }
+        </style>
+    </head>
+    <body>
+        {% for k in data["hits"]["hits"] %}
+            <img src="{{url_for('static', filename=k["_source"]["save_file_name"])}}" />
+            <table> 
+                <tr><th>key</th><th>value</th></tr>   
+                {% for key in k["_source"].keys() %}
+                    <tr><td>{{key}}</td><td>{{k["_source"][key]}}</td></tr>
+                {% endfor %}
+            </table>
+        {% endfor %}
+    </body>
+</html>
