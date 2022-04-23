@@ -81,12 +81,20 @@ class IBK(VolleyballTemplete, ElasticClient):
         :playername:
         :playerbacknum:
         """
-
+        try:
+            
+            img_download_path = self.imgDownloadTemplate + saveFileNm
+            urlreq.urlretrieve(url= imgUrl, filename= img_download_path)
+        except KeyError as err:
+            print(err)
+        except:
+            print("player image download fail !!")
+        else:
+            print("imgurl: {}".format(imgUrl))
+        finally:
+            return img_download_path 
+        
     def getPlayerDetailInfor(self)-> None:
-        """
-        :param:
-        :return:
-        """
         """
         :param:
         :return:
@@ -96,16 +104,16 @@ class IBK(VolleyballTemplete, ElasticClient):
 
             if response.status_code == 200:
                 element = Player(
-                        name="",        # type str ()
-                        age=0,          # type int ()
-                        year=0,         # type int ()
-                        month=0,        # type int ()
-                        day=0,          # type int ()
-                        height=0,       # type int ()
+                        name="",        # type str (o) 
+                        age=0,          # type int (o) 
+                        year=0,         # type int (o)
+                        month=0,        # type int (o)
+                        day=0,          # type int (o)
+                        height=0,       # type int (o)
                         weight=0,       # type int ()
                         position="",    # type str (o)
                         back_number=0,  # type int (o)
-                        team=self.teamName, # type str () 
+                        team=self.teamName, # type str (o)
                         img_file_path="", # type str ()
                         save_file_name="" # type str ()
                         ) 
@@ -143,31 +151,46 @@ class IBK(VolleyballTemplete, ElasticClient):
                         replace("일", " ").\
                         split(" ")
                        
-                        element.year = playerBirthdayList[0] # 년 
+                        element.year = int(playerBirthdayList[0]) # 년 
                         element.month = int(str(playerBirthdayList[1]).lstrip("0")) # 월
                         element.day = int(str(playerBirthdayList[2]).lstrip("0")) # 일
+                        element.age  += int(TimeSett.currentYear) - element.year 
+                        
                     elif (key == "신장"):
-                        playerHeight = 
-                    
-                    
-                print(playerNm, playerBacknumber)
+                        playerHeight = str(p.text).\
+                        lstrip("\n"+key).\
+                        strip(" ").\
+                        lstrip(":").\
+                        replace(" ", "") 
+                        playerHeight = re.sub(r"[\n\t\s]*", "", playerHeight)
+                        playerHeight = playerHeight.rstrip("cm")
+                        playerHeight = int(playerHeight)
+
+                        element.height = playerHeight
                 
+                saveFileNm = self.saveFileName.format(teamName= self.teamName, 
+                                         playerBacknum=element.back_number,
+                                         playerName= element.name)       
                 
-                ''' 
-                # player-name
-                playerNm = playerProfile.select_one("div.pname > strong")
-                playerNm = str(playerNm.string).strip()
+                element.save_file_name = saveFileNm
+                element.img_file_path = self.playerImgDownload(imgUrl= u["srcUrl"], saveFileNm= saveFileNm) 
                 
-                checkPrint = """
-                position: {plyPosition} 
-                backnumber: {plyBacknm} 
-                name: {plyNm}""".format(
-                    plyPosition= playerPosition, 
-                    plyBacknm= playerBacknumber,
-                    plyNm= playerNm)
+                result = dataclasses.asdict(element)
                 
-                print(checkPrint)
-                '''   
+                self.action.append(
+                        {
+                            "_index": self.index,
+                            "_id": self.documentIdTemplete.format(
+                                    teamName= result["team"]
+                                    ,playerName= result["name"]
+                                    ,playerBacknum= str(result["back_number"])
+                            ),
+                            "_source": result
+                        }
+                )    
+
+        self.es_bulk_insert()  
+
 if __name__ == "__main__":
     o = IBK()
     o.getAccessPlayerUrl()
